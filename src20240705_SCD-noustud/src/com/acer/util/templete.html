@@ -1,0 +1,185 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+<style>
+@page {
+	size: <頁面大小>;
+	margin: 0.1in;
+}
+
+;
+.printBlock {
+	height: 100%;
+	border-style: solid;
+	border-width: 1;
+	border-color: blue;
+	page-break-after: always;
+}
+
+;
+.lastBlock {
+	height: 100%;
+	border-style: solid;
+	border-width: 1;
+	border-color: blue;
+}
+
+;
+.tdGray {
+	background-color: #E0E0E0;
+}
+;
+
+</style>
+<script type="text/javascript" src="../../include/js/bluebird.min.js"></script>
+<script type="text/javascript" src="../../include/js/jquery-1.9.1.min.js"></script>
+<script type="text/javascript" src="../../include/js/jspdf.min.js"></script>
+<script type="text/javascript" src='../../include/js/html2pdf.js'></script>
+<script>
+	var printType = '<是否直印>';
+	var leftPad = '<左邊界>';
+	var topPad = '<上邊界>';
+	
+	var maxWidth = 0;
+	var maxHeight = 0;
+	
+	var fontSizeExceptList = new Array("scd003m","scd004m","ins002m","ccs101r","gra113r","reg035m","per142r","reg188r","scd223r","tra133r","scd216q" );
+	
+	function init() {	
+		
+		if (printType == "portrait") {
+			$('body').css('height', '1122px');
+			$('body').css('width', '794px');
+			maxWidth = 794;
+			maxHeight = 1122;
+		} else {
+			maxWidth = 1122;
+			maxHeight = 794;
+			if(location.href.indexOf('gra113r') > -1) {
+				maxHeight = 760;
+			}
+			if(location.href.indexOf('tra133r') > -1) {
+				maxHeight = 760;
+			}
+			
+			
+			$('body').css('width', '1122px');
+			$('body').css('height', maxHeight+'px');			
+		}
+		
+		if(!isInFontSizeExceptList()) { //不在例外清單內的才會強制將字體大小改為10pt
+			$("div table td").each(function(index) {
+				if (printType == 'portrait') {
+					$(this).css("font-size", "10pt");
+				} else {
+					$(this).css("font-size", "10pt");
+				}
+			});
+		}
+			
+		$("#printMenuBar").width(maxWidth);
+	};	
+	
+	function isInFontSizeExceptList() {
+		var rtn = false;
+		var currentLocation = location.href;
+		for(var i = 0 ; i < fontSizeExceptList.length ; i++ ) {
+			if(currentLocation.indexOf(fontSizeExceptList[i]) > -1) {
+				rtn = true;
+				break;
+			}
+		}
+		return rtn;
+	}
+
+	function doPrint() {			
+		
+		$('#printMenuBar').hide();
+		window.print();
+		$('#printMenuBar').show();
+		alert('另存PDF請將印表機改為PDF即可');
+	}
+
+	function saveToHtml() {
+		var clone = $('html').html();
+		var a = document.createElement("a");
+		var file = new Blob([ clone ], {
+			"type" : "text/html"
+		});
+		a.href = URL.createObjectURL(file);
+		a.download = new Date().getTime() + ".html";
+		a.click();
+	}
+
+	function saveToPdf() {
+		
+		var doc = null;
+
+		var len = $('div:not([style*="page-break-before"])').length;
+		var done = 0;
+
+		var images = new Array(len);
+		var canvases = new Array(len);
+
+		$('div:not([style*="page-break-before"])').each(
+				function(index) {
+					
+					html2canvas($(this), {			
+							        		
+						onrendered : function(canvas) {
+
+							if (doc == null) {
+								if (printType == 'portrait') {
+									doc = new jsPDF(printType, 'px', [
+											1142, 814 ]);
+								} else {
+									doc = new jsPDF(printType, 'px', [
+											814, 1142 ]);
+								}
+							}
+
+							var image = canvas.toDataURL("image/png");
+
+							done++;
+							images[index] = image;
+							canvases[index] = canvas;
+							
+							if (done == len) {
+
+								for (var j = 0; j < len; j++) {
+									var canvas_ = canvases[j];
+									console.log(canvas_.width+","+canvas_.height);
+									doc.addImage(images[j], 'JPEG', 10,
+											10, canvas_.width,
+											canvas_.height);
+									if (j != len - 1) {
+										doc.addPage();
+									} else {
+										doc.save(new Date().getTime()
+												+ '.pdf');
+									}
+								}
+							}
+						}
+					});
+				});
+
+		
+	}
+	
+	
+</script>
+<固定內容>
+</head>
+<body topmargin=0 onload="init();">
+	<table class="tdGray" id="printMenuBar" >
+		<tr>
+			<td width=200><input type="button" value="離　開"
+				onclick="top.close()"><!-- input type="button" value="另存PDF"
+				onclick="saveToPdf();" --></td>
+			<td align=center><!--<font color='#E0E0E0'>&#29256;&#27402;&#25152;&#26377;&#23439;&#30849;&#32929;&#20221;&#26377;&#38480;&#20844;&#21496;&copy;2006
+					Acer Inc.</font>-->   </td>
+			<td width=200 align=right><input type="button" id='btn_print'
+				value="列印 /另存PDF" onclick="doPrint();"></td>
+		</tr>
+	</table>	
